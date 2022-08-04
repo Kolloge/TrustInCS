@@ -45,5 +45,6 @@
 2. [Git 修改提交用户账户及名称](docs/git/basics/git-change-user.md)
 
 
-##项目管理
+## 项目管理
 ### 敏捷开发
+1. [敏捷宣言](docs/pm/scrum/pm-scrum-agilemannifesto.md)
