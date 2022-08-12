@@ -21,6 +21,7 @@
 1. [ArrayList源码解析](docs/java/util/list/java-util-list-arraylist-code.md)
 2. [CopyOnWriteArrayList源码解析](docs/java/util/list/java-util-list-copyonwritearraylist-code.md)
 3. [List相关面经](docs/java/util/list/java-util-list-interview.md)
+4. [ArrayList 快速失败机制分析及经典问题回顾](docs/java/util/list/java-util-list-arraylist-ff.md)
 
 ## 设计及规范
 ### 软件设计模式
