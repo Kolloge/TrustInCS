@@ -53,7 +53,6 @@
 - [Git 基础操作](docs/git/basics/git-base-op-one.md)
 
 - [Git 修改提交用户账户及名称](docs/git/basics/git-change-user.md)
-2. [Git 修改提交用户账户及名称](docs/git/basics/git-change-user.md)
 ## MySQL
 
 1. [MySQL 基础](docs/database/MySQL/MySQL-base-one.md)
