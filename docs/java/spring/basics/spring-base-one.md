@@ -37,6 +37,60 @@
 - inversion of control(控制反转)，又可以称为好莱坞原则，不要给我们打电话，我们会给你打电话。
 - IoC也就是由Spring来控制对象的生命周期以及关系，而非我们自己控制。
 
+#### 依赖查找和依赖注入的区别？
+- 依赖查找
+  - 主动去IoC容器获取
+  - 实现比较繁琐
+  - 由于需要主动去获取，会侵入业务逻辑
+  - 依赖于容器提供的API
+  - 可读性较好
+- 依赖注入
+  - 由IoC容器提供数据，处于被动
+  - 实现起来十分便利
+  - 侵入性低
+  - 不依赖于容器的API
+  - 可读性较低
+
+#### 依赖查找的安全性
+依赖查找是否安全主要指的是底层是否有容错机制，如没有对应的bean时是否抛出异常。
+- 单一类型的查找
+  - BeanFactory#getBean 不安全
+  - ObjectFactory#getBean 不安全
+  - ObjectProvider#getIfAvailable 安全
+- 集合类型查找
+  - ListableBeanFactory#getBeansOfType 安全
+  - ObjectProvider#Stream 安全
+
+#### 依赖查找时经典的异常
+Spring中定义了一个经典的BeansException，其对应的子类型均为常见的Bean相关的错误异常。
+- NoSuchBeanDefinitionException
+  - 若是查找的Bean在IoC容器中不存在时会触发，如之前说明的BeanFactory#getBean，ObjectFactory#getBean
+- NoUniqueBeanDefinitionException
+  - 按照类型进行查找时，IoC中存在多个实例，常见的就是多个实现都注册到了IoC
+- BeanInstantiationException
+  - 当Bean所对应的类型非具体的类时，如注册一个接口进IoC时
+- BeanCreationException
+  - 在Bean初始化过程中，也就是进行初始化方法的时候异常，如实现InitializingBean在afterPropertiesSet重写中异常，以及@PostConstrut注解声明的初始化方法
+- BeanDefinitionStoreException
+  - 当BeanDefinition配置元信息非法时，如XML资源无法打开
+
+#### 依赖注入的模式
+- 手动模式 配置或编程的方式，提前安排注入规则
+  - XML资源配置元信息
+  - Java注解配置元信息
+  - API配置元信息
+- 自动模式 实现方提供依赖自动关联的方式，按照内建的注入规则
+  - Autowiring自动绑定
+
+#### 依赖注入的类型
+- Setter注入
+  - 通过调用set方法进行注入，可以实现再次注入
+- 构造器注入
+  - 通过构造器参数进行注入
+- 字段
+  - 比如在成员变量上直接使用Autowired注解进行注入，不被推荐
+- 接口回调
+  - 如内建Aware接口
 
 #### bean的生命周期
 
@@ -50,7 +104,7 @@
   - 初始化的方式有哪些：
     - @PostConstruct，容器刷新过程中会在最后初始化非lazy bean的时候进行回调对应bean中被该注解标记的方法。
     - 实现了InitializingBean接口，需要重写afterPropertiesSet，同样的容器刷新时最后进行初始化的时候会调用afterPropertiesSet方法，执行方法中自定义的初始化方式。
-    - @bean注解的时候指定对应的初始化方法
+    - @Bean注解的时候指定对应的初始化方法
   - 销毁的方式有哪些：
     - 使用@preDestroy注解
     - 实现DisposableBean接口的destroy方法

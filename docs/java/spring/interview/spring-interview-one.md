@@ -1,0 +1,13 @@
+### Spring 常见面试题
+
+#### BeanFactory和FactoryBean的区别
+
+#### ObjectFactory和BeanFactory的区别？
+- ObjectFactory和BeanFactory都提供了依赖查找的能力
+- ObjectFactory仅关注一个或一种类型的Bean依赖查找，但是其提供的能力并不是由自身进行实现。ObjectFactoryCreatingFactoryBean这个通过FactoryBean生成ObjectFactory的实现里，在通过FactoryBean获取ObjectFactory实例时实际上返回的的是TargetBeanObjectFactory，TargetBeanObjectFactory作为内部类实现了ObjectFactory接口，而TargetBeanObjectFactory内部自身持有了一个BeanFactory，TargetBeanObjectFactory重写了getObject方法，方法内调用的还是BeanFactory的getBean，所以底层的能力输出还是依靠的BeanFactory。
+- 而对BeanFactory而言其提供了单一类型，集合类型以及层次性等多种依赖查找方式。
+
+#### BeanFactory#getBean操作是否是线程安全的？
+- 是线程安全的，因为在操作过程中会增加互斥锁。
+- 在DefaultListableBeanFactory中对于存放和更新操作时使用了synchronized关键字将beanDefinitionMap加了锁。
+
