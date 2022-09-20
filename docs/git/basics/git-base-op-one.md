@@ -5,11 +5,11 @@
 
 - 在项目目录位置执行git初始化操作
   - ```shell
-    git init //前往指定项目目录内执行
+    git init
     ```
 - 添加项目描述文件（可选）
   - ```shell
-    git add README.md //为项目添加描述文件需要自己创建
+    git add README.md
     ```
 - git.add只是将文件从工作区提交到版本暂存区，需要使用commit提交到仓库区
   - ```shell
