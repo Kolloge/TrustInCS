@@ -27,6 +27,9 @@
 - [List相关面经](docs/java/util/list/java-util-list-interview.md)
 - [ArrayList 快速失败机制分析及经典问题回顾](docs/java/util/list/java-util-list-arraylist-ff.md)
 
+### 并发
+#### 线程
+- [ThreadLocal 原理分析](docs/java/concurrent/thread/java-thread-threadlocal.md)
 
 ## 中间件
 ### 消息队列
