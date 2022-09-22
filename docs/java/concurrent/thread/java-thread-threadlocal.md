@@ -170,7 +170,7 @@ public class ThreadLocalMap {
                 e.value = value;
                 return;
             }
-            //如果空，放值，这里其实就是为了处理一个问题，也就是弱引用导致被回收问题
+            //如果空，放值，同时处理一个问题处理一下过期数据的问题
             if (k == null) {
                 //对应处理方法见下方
                 replaceStaleEntry(key, value, i);
@@ -181,7 +181,9 @@ public class ThreadLocalMap {
         tab[i] = new Entry(key, value);
         int sz = ++size;
         //也就是超过负载进行扩容的机制避免死循环，因为不到满的时候就扩容了。
+        //前面这个cleanSomeSlots是进行清除过期数据，如果清除了过期数据返回TURE，这样其实虽然现在set了值，但是我又清理了一个铁定不用触发扩容，若是没清那么再判断是否需要扩容。
         if (!cleanSomeSlots(i, sz) && sz >= threshold)
+            //扩容
             rehash();
     }
 }
@@ -204,7 +206,7 @@ public class ThreadLocalMap {
 }
 ```
 
-- 处理因弱引用原因导致key为null情况的方法: replaceStaleEntry
+- 处理key为null情况过期数据的方法: replaceStaleEntry
 
 ```java
 public class ThreadLocalMap {    
@@ -225,7 +227,7 @@ public class ThreadLocalMap {
         // up refs in bunches (i.e., whenever the collector runs).
         //翻译一下：备份以检查当前运行中以前的过时条目。我们一次清除整个运行，以避免由于垃圾收集器成串地释放ref（即，每当收集器运行时）而导致的持续增量刷新。
         int slotToExpunge = staleSlot;
-        //就是往前找的方式循环，其实就找找有没有也被回收掉弱引用key的entry
+        //就是往前找的方式循环，其实就找找有没有也被回收掉key的entry
         for (int i = prevIndex(staleSlot, len); (e = tab[i]) != null; i = prevIndex(i, len))
             if (e.get() == null)
                 slotToExpunge = i;
@@ -283,7 +285,7 @@ public class ThreadLocalMap {
         // Rehash until we encounter null
         Entry e;
         int i;
-        //往后边再找找看看有没有别的key引用为null的entry
+        //往后边再找找看看有没有别的key引用为null的过期entry
         for (i = nextIndex(staleSlot, len); (e = tab[i]) != null; i = nextIndex(i, len)) {
             ThreadLocal<?> k = e.get();
             if (k == null) {
@@ -310,11 +312,11 @@ public class ThreadLocalMap {
                 }
             }
         }
-        //这里其实就找到的完成以上操作之后最后一个tab中entry不为空的位置
+        //上面循环内部没有退出写法，所以只有for循环里的(e = tab[i]) != null才会使得循环结束，那么走到这里的时候就是取得的entry为null的情况
         return i;
     }
 
-    //传入的i值是不可能对应的entry都是没问题的，从i往后找
+    //传入的i值对应的entry都是没问题的，从i往后找
     private boolean cleanSomeSlots(int i, int n) {
         boolean removed = false;
         Entry[] tab = table;
@@ -361,7 +363,7 @@ public class ThreadLocal<T> {
     }
 
     private T setInitialValue() {
-        //就是返回个null
+        //如果没有自己重写initialValue方法，就是返回个null
         T value = initialValue();
         Thread t = Thread.currentThread();
         ThreadLocalMap map = getMap(t);
@@ -401,7 +403,7 @@ public class ThreadLocalMap {
             //找到了对应的key位置，返回对应的entry即可
             if (k == key)
                 return e;
-            //这种情况是出现了GC回收导致的问题，还是那个常见的清除方法
+            //这种情况是出现了过期数据，还是那个常见的清除方法
             if (k == null)
                 expungeStaleEntry(i);
             else
@@ -415,9 +417,81 @@ public class ThreadLocalMap {
 }
 ```
 
-### ThreadLocal中存在问题
-由上面的源码我们可以看到，其实代码中已经对弱引用导致的内存泄漏问题已经做了一系列的处理，正经使用的话不会存在问题的，可是非要不正经使用呢？
-- 花式不正经玩法：有条件的set进去了
-  - 这个线程再没触发过get，set和remove，那就是泄漏了
-  - set进入了，也get了，但是忘记了调用remove。在线程池下，下一次该线程进来同样的流程，但是因为set条件未触发，直接get了上一次请求放进去的值，直接数据污染
-- 别的花式不正经玩法，待补充了。
+#### ThreadLocal的remove方法
+
+```java
+public class ThreadLocal<T> {
+    public void remove() {
+        ThreadLocalMap m = getMap(Thread.currentThread());
+        if (m != null)
+            //ThreadLocalMap的remove
+        m.remove(this);
+    }
+}
+```
+
+```java
+public class ThreadLocalMap {
+    private void remove(ThreadLocal<?> key) {
+        Entry[] tab = table;
+        int len = tab.length;
+        int i = key.threadLocalHashCode & (len-1);
+        //十分熟悉的操作，所以在remove里其实也会清除掉key为null的过期数据
+        for (Entry e = tab[i]; e != null; e = tab[i = nextIndex(i, len)]) {
+            if (e.get() == key) {
+                e.clear();
+                expungeStaleEntry(i);
+                return;
+            }
+        }
+    }
+}
+```
+
+
+#### ThreadLocal的rehash方法
+```java
+public class ThreadLocalMap {
+    private void rehash() {
+        //这玩意会整个扫一遍清除过期数据
+        expungeStaleEntries();
+
+        // Use lower threshold for doubling to avoid hysteresis
+        if (size >= threshold - threshold / 4)
+            //这个没啥好讲的，就是扩容两倍，重算hash放到新的table里去
+            resize();
+    }
+
+    //就这个
+    private void expungeStaleEntries() {
+        Entry[] tab = table;
+            int len = tab.length;
+            //挨个清理
+            for (int j = 0; j < len; j++) {
+                Entry e = tab[j];
+                if (e != null && e.get() == null)
+                    expungeStaleEntry(j);
+            }
+    }
+}
+```
+
+### ThreadLocal中存在的内存泄露问题
+- 首先我们需要明确内存泄漏的定义
+  - 内存泄漏是指程序中分配的堆内存由于一些原因导致无法释放，造成系统内存的浪费。
+- 一般针对ThreadLocal内存泄漏一股脑都是朝着弱引用进行分析，但是都是经典的COPY言论，看不出来什么东西。所以对于ThreadLocal里内存泄漏我们要分为以下几种情况
+  - 针对非线程池情况下
+    - 非线程池情况下，线程运行结束销毁时对应持有的ThreadLocalMap引用消失，也就被回收了。
+  - 针对线程池情况下
+    - 非静态ThreadLocal
+      - 被GC回收导致entry的key为null，但是value还存在着，后续如果要分配，这块的entry无法被访问也没法分配，这就浪费了（这也是为什么ThreadLocal里做那么多清理操作的原因，所以这里正常操作其实不会泄漏）。
+      - set了之后就不再get，set，remove，这种其实可以挽救
+        - 虽然当前ThreadLocal没有再使用对应操作，只要别的ThreadLocal进行了get，set，remove等操作，由于一个线程下操作的都是同一个ThreadLocalMap，那么就有一定几率会被清理掉。否则只能靠触发扩容来整体清理了，这个十分困难。
+        - 如果就你一个ThreadLocal，那甭管有没有GC给你回收，这块泄漏了就是泄漏了。
+    - 静态的ThreadLocal
+      - 一般推荐ThreadLocal使用static修饰，主要是避免TSO重复创建。
+      - 出现内存泄漏就是我们使用方法有问题，set了之后就不再get，set，remove，而且这样的情况还不能通过别的ThreadLocal触发操作来进行清理，导致对应的entry一直保持在ThreadLocalMap，但是却用不上。
+- 所以我们知道其实代码中已经对内存泄漏问题已经做了一系列的处理，正经使用的话不会存在问题的。
+  - 牢记用完一定要remove，而且你不remove就算你不怕内存泄漏，你就不怕数据污染了？请求进来有条件的set导致如果这次没有进行set，导致我拿的还是上次set进去的内容。
+- 可是非要不正经使用呢？
+  - good luck
