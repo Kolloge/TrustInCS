@@ -104,6 +104,7 @@ public class ThreadLocal<T> {
 }
 ```
 
+- 这里要明确threadLocals是被Thread持有的
 ```java
 public class Thread implements Runnable {
     //而在Thread这个类里，成员变量threadLocals的定义如下
