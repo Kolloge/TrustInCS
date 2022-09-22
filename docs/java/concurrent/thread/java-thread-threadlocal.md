@@ -101,7 +101,11 @@ public class ThreadLocal<T> {
     ThreadLocalMap getMap(Thread t) {
         return t.threadLocals;
     }
+}
+```
 
+```java
+public class Thread implements Runnable {
     //而在Thread这个类里，成员变量threadLocals的定义如下
     /* 与此线程相关的ThreadLocal值。 此map通过ThreadLocal类维护 */
     ThreadLocal.ThreadLocalMap threadLocals = null;
