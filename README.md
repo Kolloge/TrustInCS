@@ -66,6 +66,9 @@
 
 #### 负载均衡
 ##### Ribbon
+- [Netflix-Ribbon基础原理及应用](docs/microservice/springcloud/netflix/springcloud-netflix-ribbon.md)
+- [Netflix-Feign基础原理及应用](docs/microservice/springcloud/netflix/springcloud-netflix-feign.md)
+- [SpringCloud-OpenFeign基础原理及应用](docs/microservice/springcloud/self/springcloud-openfeign.md)
 
 ### ServiceMesh
 - [ServiceMesh概念及理论](docs/microservice/servicemesh/base/servicemesh-base-one.md)
