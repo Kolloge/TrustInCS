@@ -38,13 +38,35 @@
 - [RocketMQ最佳实践](docs/midware/mq/rocketmq/rocketmq-practice.md)
 - [RocketMQ相关面经](docs/midware/mq/rocketmq/rocketmq-interview.md)
 
+### 搜索引擎
+#### Elasticsearch
+- [Elasticsearch相关基础](docs/midware/se/elasticsearch/elasticsearch-base.md)
+- [Elasticsearch集群相关内容](docs/midware/se/elasticsearch/elasticsearch-cluster.md)
+
 
 ### 配置中心
 #### Apollo
 - [Apollo相关基础](docs/midware/cc/apollo/apollo-base.md)
 
+### 注册中心
+#### Zookeeper
+- [Zookeeper相关基础](docs/midware/rc/zookeeper/zookeeper-base.md)
+
 
 ## 微服务及云原生
+### SpringCloud
+#### 注册中心
+##### Eureka
+- [Eureka基础原理及应用](docs/microservice/springcloud/netflix/springcloud-netflix-eureka.md)
+
+#### 网关
+##### Gateway
+- [SpringCloud-Gateway基础原理及应用](docs/microservice/springcloud/self/springcloud-gateway.md)
+
+
+#### 负载均衡
+##### Ribbon
+
 ### ServiceMesh
 - [ServiceMesh概念及理论](docs/microservice/servicemesh/base/servicemesh-base-one.md)
 - [Istio简介](docs/microservice/servicemesh/istio/servicemesh-istio.md)
@@ -70,7 +92,9 @@
 - [Git 基础操作](docs/git/basics/git-base-op-one.md)
 
 - [Git 修改提交用户账户及名称](docs/git/basics/git-change-user.md)
-## MySQL
+
+## 数据库
+### MySQL
 
 1. [MySQL 基础](docs/database/MySQL/MySQL-base-one.md)
 
