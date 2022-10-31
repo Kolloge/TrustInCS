@@ -1,6 +1,7 @@
 ### Spring 基础知识汇总
 
 #### Spring有哪些模块？
+
 - aop
   - 面向切面编程
 - aspects
@@ -38,6 +39,7 @@
 - IoC也就是由Spring来控制对象的生命周期以及关系，而非我们自己控制。
 
 #### 依赖查找和依赖注入的区别？
+
 - 依赖查找
   - 主动去IoC容器获取
   - 实现比较繁琐
@@ -52,7 +54,9 @@
   - 可读性较低
 
 #### 依赖查找的安全性
+
 依赖查找是否安全主要指的是底层是否有容错机制，如没有对应的bean时是否抛出异常。
+
 - 单一类型的查找
   - BeanFactory#getBean 不安全
   - ObjectFactory#getBean 不安全
@@ -62,7 +66,9 @@
   - ObjectProvider#Stream 安全
 
 #### 依赖查找时经典的异常
+
 Spring中定义了一个经典的BeansException，其对应的子类型均为常见的Bean相关的错误异常。
+
 - NoSuchBeanDefinitionException
   - 若是查找的Bean在IoC容器中不存在时会触发，如之前说明的BeanFactory#getBean，ObjectFactory#getBean
 - NoUniqueBeanDefinitionException
@@ -75,6 +81,7 @@ Spring中定义了一个经典的BeansException，其对应的子类型均为常
   - 当BeanDefinition配置元信息非法时，如XML资源无法打开
 
 #### 依赖注入的模式
+
 - 手动模式 配置或编程的方式，提前安排注入规则
   - XML资源配置元信息
   - Java注解配置元信息
@@ -83,14 +90,141 @@ Spring中定义了一个经典的BeansException，其对应的子类型均为常
   - Autowiring自动绑定
 
 #### 依赖注入的类型
+
 - Setter注入
   - 通过调用set方法进行注入，可以实现再次注入
+    - 手动模式实现
+      - XML资源配置元信息
+
+        - property标签，使用ref方式
+
+          - ```xml
+            <property name="info" ref="baseInfo" />
+
+            ```
+      - Java注解
+        - 使用@Autowired注解标注在方法上
+          - ```java
+            @Component
+            public class InfoDemo {
+
+                private Info info;
+
+                @Autowired
+                public void setInfo(Info info){
+                    this.info = info;
+                }
+            }
+            ```
+        - 同样的@Resource和@Inject注解也可以
+      - API配置元信息
+        - 使用BeanDefinitionBudilder.genericBeanDefinition(class)来生成指定类的builder，然后采用builder的addPropertyReference方法来将对应的依赖引用到我们指定类中。最后将对应的beanDefinition注册到容器中。
+    - 自动模式实现（在XML方法上使用的比较多）
+      - byName
+        - 使用autowire标签指定byName就会根据名称自动依赖注入
+      - byType
+        - 使用autowire标签指定byType就会根据名称自动依赖注入
 - 构造器注入
   - 通过构造器参数进行注入
+    - 手动模式实现
+      - XML资源配置元信息
+        - 使用ref标签
+          - ```xml
+            <constructor name="info" ref="baseInfo" />
+            ```
+      - Java注解
+        - 使用@Autowired注解标注构造器方法上
+          - ```java
+            @Component
+            public class InfoDemo {
+
+                private Info info;
+
+               @Autowired
+               public InfoDemo(Info info){
+                   this.info = info;
+               }
+            }
+            ```
+      - API配置元信息
+        - 使用BeanDefinitionBudilder.genericBeanDefinition(class)来生成指定类的builder，然后采用builder的addConstructorArgReference方法。最后将对应的beanDefinition注册到容器中。
+    - 自动模式实现（在XML方法上使用的比较多）
+      - constructor
+        - 使用autowire标签指定constructor
 - 字段
   - 比如在成员变量上直接使用Autowired注解进行注入，不被推荐
 - 接口回调
-  - 如内建Aware接口
+  - 如内建Aware接口，自己创建的bean通过实现诸多aware接口并重写对应的方法实现内建的bean的注入到当前的bean中
+    - BeanFactoryAware: 获取IoC容器-BeanFactory
+    - ApplicationContextAware: 获取Spring应用上下文-ApplicationContext对象
+    - EnvironmentAware: 获取Environment对象
+    - ResourceLoaderAware: 获取资源加载器对象-ResourceLoader
+    - BeanClassLoaderAware: 获取加载当前Bean Class的ClassLoader
+    - BeanNameWare: 获取当前bean的名称
+    - MessageSourceAware: 获取MessageSource对象，用于Spring国际化
+    - ApplicationEventPublisherAware: 获取ApplicationEventPublisher对象，用于Spring事件
+    - EmbeddedValueResolverAware: 获取StringValueResolver对象，用于占位符处理
+
+
+#### 如何选择依赖注入类型
+
+* 依赖不多的情况下，使用构造器方式注入，注入顺序固定，虽然推荐，但是依赖太多会使得构造器方法过于臃肿
+* 依赖较多的情况下，使用Setter方法注入，当然Setter方法注入也有缺点，就是注入顺序完全依赖用户操作，前后依赖时可能会有问题
+* 想要操作便利便利省事，字段注入，很多业务上都是这么写，虽然不推荐，但是写起来确实十分便捷
+
+
+####基础类型的注入（非bean）
+- 原生类型: boolean、byte、char、short、int、float、long、double
+- 标量类型: Number、Character、Boolean、Enum、Locale、Charset、Currency、Properties、UUID
+- 常规类型: Object、String、TimeZone、Calendar、Optional等
+- Spring类型: Resource、InputSource、Formatter等
+
+
+#### Qualifier注解作用
+- 当存在相同类型但是名称不同的Bean时，直接进行按照类型注入会抛出异常，此时可以使用@Qualifier注解配合进行依赖注入
+```java
+@Component
+public class InfoDemo {
+
+    @Autowired
+    @Qualifier("info1")
+    private Info info;
+    
+}
+```
+- 分组进行限定
+```java
+@Component
+public class InfoDemo {
+
+    //实现将标记了Qualifier作为一个组合进行注入
+    @Autowired
+    @Qualifier
+    private Collection<Info> infos;
+    
+    
+    @Bean
+    @Qualifier
+    public Info info2(){
+        Info info2 = new Info();
+        info2.setInfo("2");
+        return info2;
+    }
+
+    @Bean
+    @Qualifier
+    public Info info3(){
+        Info info3 = new Info();
+        info3.setInfo("3");
+        return info3;
+  }
+}
+```
+
+
+- 分组进行限定扩展版
+  - 可以通过扩展@Qualifier注解来实现自己的注解，其用法和@Qualifier一样，将自定义的注解标记在@Bean的方法上，在@Autowired注入Bean的时候添加自定义的注解实现注入
+  - @LoadBalanced就是对应的实现
 
 #### bean的生命周期
 
