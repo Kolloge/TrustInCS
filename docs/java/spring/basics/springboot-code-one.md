@@ -58,9 +58,8 @@ public class SpringApplication {
         this.webApplicationType = WebApplicationType.deduceFromClasspath();
         //直接获取启动辅助类
         this.bootstrappers = new ArrayList<>(getSpringFactoriesInstances(Bootstrapper.class));
-        //初始化
+        //设置初始化器，一下就给整了整整八个，后面在处理容器的时候就会调用这些初始化器来对容器进行初始化操作
         setInitializers((Collection) getSpringFactoriesInstances(ApplicationContextInitializer.class));
-        //监听者
         setListeners((Collection) getSpringFactoriesInstances(ApplicationListener.class));
         //内部就是在stackTrace里找含方法名叫做"main"的类名，然后通过Class.forName拿到对应类的Class信息
         //很明显，这个有main方法的就是我们写的入口类DemoApplication
@@ -96,8 +95,6 @@ public class SpringApplication {
             //默认，也就是识别的是普通web应用那么久创建的是AnnotationConfigApplicationContext
             context = createApplicationContext();
             //为容器设置上下文工厂，使用的是DefaultApplicationStartup，用来打tag标记步骤
-            //这个其实就是记录当前容器刷新到什么步骤了
-            //如容器刷新完成的时候就会记录，见下方listeners.started(context);
             context.setApplicationStartup(this.applicationStartup);
             //准备容器
             prepareContext(bootstrapContext, context, environment, listeners, applicationArguments, printedBanner);
@@ -130,5 +127,125 @@ public class SpringApplication {
         return context;
     }
     
+}
+```
+
+
+别的以后再说，直接看看准备容器做了什么事情
+```java
+public class SpringApplication {
+
+    private void prepareContext(ConfigurableApplicationContext context, ConfigurableEnvironment environment,
+                                SpringApplicationRunListeners listeners, ApplicationArguments applicationArguments, Banner printedBanner) {
+        //没啥问题，之前初步处理的environment赋给容器，这里要情调一点啊，就是如apollo等配置内容还没有加载到environment中，要到spring的refresh容器刷新的时候才添加到environment中
+        context.setEnvironment(environment);
+        //没干啥正经事儿，里面前两个if其实都没有处理，也就放了个ConversionService到BeanFactory里去
+        postProcessApplicationContext(context);
+        //对容器应用所有的初始化器，一共八个，以后再说
+        applyInitializers(context);
+        //发布ApplicationContext已经准备好的时间，这时候还没有加载任何bean definition，只是调用的了ApplicationContextInitializers
+        //这里面的listener前面也讲过就一个EventPublishingRunListener
+        listeners.contextPrepared(context);
+        //打打日志
+        if (this.logStartupInfo) {
+            logStartupInfo(context.getParent() == null);
+            logStartupProfileInfo(context);
+        }
+        // 上面容器已经准备好了，这里先上往容器里添加几个boot专用的bean
+        ConfigurableListableBeanFactory beanFactory = context.getBeanFactory();
+        beanFactory.registerSingleton("springApplicationArguments", applicationArguments);
+        if (printedBanner != null) {
+            beanFactory.registerSingleton("springBootBanner", printedBanner);
+        }
+        if (beanFactory instanceof DefaultListableBeanFactory) {
+            ((DefaultListableBeanFactory) beanFactory)
+                    .setAllowBeanDefinitionOverriding(this.allowBeanDefinitionOverriding);
+        }
+        if (this.lazyInitialization) {
+            context.addBeanFactoryPostProcessor(new LazyInitializationBeanFactoryPostProcessor());
+        }
+        //获取当前SpringApplication的primarySource
+        //也就一个class org.springframework.cloud.bootstrap.BootstrapImportSelectorConfiguration
+        Set<Object> sources = getAllSources();
+        Assert.notEmpty(sources, "Sources must not be empty");
+        //内部是创建了一个BeanDefinitionLoader，定义了annotatedReader、xmlReader以及scanner
+        //并且替换了annotatedReader、xmlReader以及scanner自身的environment为当前SpringApplication的environment
+        //因为source BootstrapImportSelectorConfiguration 上加持了@Configuration注解，也就是有@Component，所以最后使用的就是annotatedReader来注册BootstrapImportSelectorConfiguration
+        load(context, sources.toArray(new Object[0]));
+        listeners.contextLoaded(context);
+    }
+    
+}
+```
+
+refreshContext，核心就是spring容器的刷新过程，内部也是调用传说中大名鼎鼎的AbstractApplicationContext的refresh方法
+```java
+public abstract class AbstractApplicationContext  {
+    
+    @Override
+    public void refresh() throws BeansException, IllegalStateException {
+        synchronized (this.startupShutdownMonitor) {
+            // 准备开始刷新了
+            prepareRefresh();
+
+            // Tell the subclass to refresh the internal bean factory.
+            ConfigurableListableBeanFactory beanFactory = obtainFreshBeanFactory();
+
+            // Prepare the bean factory for use in this context.
+            prepareBeanFactory(beanFactory);
+
+            try {
+                // Allows post-processing of the bean factory in context subclasses.
+                postProcessBeanFactory(beanFactory);
+
+                //很重要的一点，首先我们知道后置处理器有两种，一种是BeanFactory的后置处理器，一种是Bean的后置处理器
+                //BeanFactory后置处理器作为Spring初始化BeanFactory时的扩展点，我们可以自己定义后置处理器在容器实例化任何bean之前读取BeanDefinition，能够读取的同时也可以修改bean的定义
+                //在这个方法中，会实例化调用所有的BeanFactoryPostProcessor以及其子类BeanDefinitionRegistryPostProcessor
+                //两者优先级上是BeanDefinitionRegistryPostProcessor先执行，BeanFactoryPostProcessor后执行
+                //而apollo就实现了一个SpringValueDefinitionProcessor的BeanDefinitionRegistryPostProcessor类型后置处理器，然后遍历了容器中所有的BeanDefinition，将属性中含有占位符${key}中的key找出来(不包括@Value注解的占位符)，key和field等做好关联，封装成SpringValueDefinition对象，放入集合中
+                //同时这一步apollo也将远程的配置对应的properties放到了environment里的propertySources.propertySourceList的第一位，这里其实也涉及到占位符替换时，我们取对应的配置变量时是从environment的propertySources.propertySourceList从前往后遍历，取到key对应的value后就停止遍历，如果想要本地优先，那么就放到最后就能实现优先级变动。
+                invokeBeanFactoryPostProcessors(beanFactory);
+
+                // Register bean processors that intercept bean creation.
+                registerBeanPostProcessors(beanFactory);
+
+                // Initialize message source for this context.
+                initMessageSource();
+
+                // Initialize event multicaster for this context.
+                initApplicationEventMulticaster();
+
+                // Initialize other special beans in specific context subclasses.
+                onRefresh();
+
+                // Check for listener beans and register them.
+                registerListeners();
+
+                // Instantiate all remaining (non-lazy-init) singletons.
+                finishBeanFactoryInitialization(beanFactory);
+
+                // Last step: publish corresponding event.
+                finishRefresh();
+            } catch (BeansException ex) {
+                if (logger.isWarnEnabled()) {
+                    logger.warn("Exception encountered during context initialization - " +
+                            "cancelling refresh attempt: " + ex);
+                }
+
+                // Destroy already created singletons to avoid dangling resources.
+                destroyBeans();
+
+                // Reset 'active' flag.
+                cancelRefresh(ex);
+
+                // Propagate exception to caller.
+                throw ex;
+            } finally {
+                // Reset common introspection caches in Spring's core, since we
+                // might not ever need metadata for singleton beans anymore...
+                resetCommonCaches();
+            }
+        }
+    }
 }
 ```
