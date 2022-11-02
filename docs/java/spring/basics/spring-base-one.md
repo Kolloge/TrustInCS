@@ -173,7 +173,7 @@ Spring中定义了一个经典的BeansException，其对应的子类型均为常
 * 想要操作便利便利省事，字段注入，很多业务上都是这么写，虽然不推荐，但是写起来确实十分便捷
 
 
-####基础类型的注入（非bean）
+#### 基础类型的注入（非bean）
 - 原生类型: boolean、byte、char、short、int、float、long、double
 - 标量类型: Number、Character、Boolean、Enum、Locale、Charset、Currency、Properties、UUID
 - 常规类型: Object、String、TimeZone、Calendar、Optional等
