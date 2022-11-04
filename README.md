@@ -14,6 +14,7 @@
 - [Spring 基础知识点](docs/java/spring/basics/spring-base-one.md)
 - [Spring 相关面经](docs/java/spring/interview/spring-interview-one.md)
 - [SpringBoot 相关知识点](docs/java/spring/basics/springboot-code-one.md)
+- [Spring 注解相关知识点-PostConstruct分析](docs/java/spring/basics/spring-annotation-postconstruct.md)
 
 ## 集合
 ### Map
