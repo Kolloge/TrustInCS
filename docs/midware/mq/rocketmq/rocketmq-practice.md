@@ -156,8 +156,8 @@ SYNC_FLUSH（同步刷新）相比于ASYNC_FLUSH（异步处理）会损失很�
 
 RocketMQ 中，Name Servers 被设计用来做简单的路由管理。其职责包括：
 
-- Brokers 定期向每个名称服务器注册路由数据。
-- 名称服务器为客户端，包括生产者，消费者和命令行客户端提供最新的路由信息。
+- Brokers 定期向每个命名服务器注册路由数据。
+- 命名服务器为客户端，包括生产者，消费者和命令行客户端提供最新的路由信息。
 
 ## 客户端配置
 
@@ -186,7 +186,7 @@ export   NAMESRV_ADDR=192.168.0.1:9876;192.168.0.2:9876
 
 - HTTP静态服务器寻址（默认）
 
-客户端启动后，会定时访问一个静态HTTP服务器，地址如下：[http://jmenv.tbsite.net:8080/rocketmq/nsaddr](http://jmenv.tbsite.net:8080/rocketmq/nsaddr)，这个URL的返回内容如下：
+客户端启动后，会定时访问一个静态HTTP服务器，地址如下：http://jmenv.tbsite.net:8080/rocketmq/nsaddr，这个URL的返回内容如下：
 
 ```text
 192.168.0.1:9876;192.168.0.2:9876
