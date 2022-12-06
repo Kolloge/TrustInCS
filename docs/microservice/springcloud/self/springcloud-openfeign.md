@@ -183,7 +183,7 @@ public class RibbonClientConfiguration {
 
 
 
-那么在我们自己不配置Feign的超时时间的时候就会走Ribbon的超时时间，我们自己配置Ribbon的超时时间，idea在yml这里不会进行智能提示，但是我们根据上面知道对应的配置key是什么，放心的填写就完事了/
+那么在我们自己不配置Feign的超时时间的时候就会走Ribbon的超时时间，我们自己配置Ribbon的超时时间，idea在yml这里不会进行智能提示，但是我们根据上面知道对应的配置key是什么，放心的填写就完事了。
 ```yml
 ribbon:
   ReadTimeout: 5000
