@@ -8,6 +8,6 @@
 - git config user.name "Kolloge"
 
 ### Git 修改当前用户邮箱
-- git config user.email "kolloge@gmail.com"
+- git config user.email "harweychao@gmail.com"
 
 
