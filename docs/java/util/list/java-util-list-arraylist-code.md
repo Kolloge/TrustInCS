@@ -355,6 +355,7 @@ public class ArrayList
 ```
 
 **扩容方法**
+
 ensureCapacity方法在ArrayList内部并没有被调用，主要提供给外部调用，保证在放入数据前先进行调用以避免多次扩容。比较常见的情况就是不知道数据量大小，先创建一个空ArrayList之后拿到了要放入的数据时调用ensureCapacity方法避免放入大量数据多次扩容。
 
 ```java
